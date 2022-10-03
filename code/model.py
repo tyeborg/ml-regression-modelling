@@ -23,6 +23,21 @@ class LinearRegressionModel(RegressionModel):
     def display(self):
         # Degree of the fitting polynomial.
         deg = 1
+
+        # Reshaping from 2D vector to 1D vector
+        self.y_test = np.reshape(self.y_test, (np.product(self.y_test.shape),))
+        #self.predictions = np.reshape(self.predictions, (np.product(self.predictions.shape),))
+        
+        # Converting into type: numpy array
+        #self.y_test = np.array(self.y_test)
+        #self.predictions = np.array(self.predictions)
+
+        self.y_test = np.array(self.y_test)
+        self.y_test = self.y_test.flatten()
+        
+        self.predictions = np.array(self.predictions)
+        self.predictions = self.predictions.flatten()
+
         # Parameters from the fit of the polynomial.
         p = np.polyfit(self.y_test, self.predictions, deg)
         m = p[0]

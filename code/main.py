@@ -2,7 +2,7 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from preprocessing import Preprocessing
-from model import LinearRegressionModel, LassoRegressionModel
+from model import LinearRegressionModel
 
 def main():
     # Import the data and set in variable.
@@ -25,13 +25,10 @@ def main():
     # Apply and visualize Linear Regression Performance.
     linear_regression = LinearRegressionModel(x_train, y_train, x_test, y_test)
     linear_regression.evaluation()
-    
-    # Apply and visualize Lasso Regression Performance.
-    lasso_regression = LassoRegressionModel(x_train, y_train, x_test, y_test)
-    lasso_regression.evaluation()
 
 if __name__ == '__main__':
-    try:
-        main()
-    except Exception:
-        print("\nSomething went wrong...")
+    #try:
+        #main()
+    #except Exception:
+        #print("\nSomething went wrong...")
+    main()

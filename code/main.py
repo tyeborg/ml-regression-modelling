@@ -2,7 +2,7 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from preprocessing import Preprocessing
-from model import LinearRegressionModel, LassoRegressionModel
+from model import LinearRegressionModel, LassoRegressionModel, BayesRegressionModel
 from something import LineRegress
 
 def main():
@@ -39,6 +39,9 @@ def main():
     
     lasso = LassoRegressionModel(x_train, y_train, x_test, y_test)
     lasso.evaluation()
+
+    lasso_check = BayesRegressionModel(x_train, y_train, x_test, y_test)
+    lasso_check.evaluation()
 
     #linear = LinearRegressionModel(x_train, y_train, x_test, y_test)
     #linear.evaluation()

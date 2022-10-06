@@ -170,5 +170,15 @@ class LassoRegressionModel(RegressionModel):
     def evaluation(self):
         super().get_performance_results('Lasso', self.predictions, self.r2)
 
+class BayesRegressionModel(RegressionModel):
+    def __init__(self, x_train, y_train, x_test, y_test):
+        super().__init__(x_train, y_train, x_test, y_test)
+        self.model = Lasso().fit(self.x_train, self.y_train)
+        self.predictions = super().flatten_vector(self.model.predict(x_test))
+        self.r2 = r2_score(self.y_test, self.predictions)
+
+    def evaluation(self):
+        super().get_performance_results('Checking Lasso', self.predictions, self.r2)
+
 
 

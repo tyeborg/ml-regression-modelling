@@ -67,6 +67,8 @@ class RegressionModel():
         # Fit the model.
         y_model = model(self.y_test)
 
+        print(f'Model Predictions: {predictions}')
+
         # Calculate the residuals (the error in the data, according to the model).
         resid = predictions - y_model
 
@@ -105,6 +107,13 @@ class RegressionModel():
         # Receive the standard deviation of error.
         std_err = self.get_std_err(p, dof, predictions)
 
+        #print('\nModel Results:')
+        #print(f'p: {p}')
+        #print(f'n: {n}')
+        #print(f'dof: {dof}')
+        #print(f't_critical: {t_critical}')
+        #print(f'std_err: {std_err}')
+
         # Create plot
         plt.scatter(self.y_test, predictions, c='gray', marker='o', edgecolors='k', s=18)
         xlim = plt.xlim()
@@ -117,17 +126,14 @@ class RegressionModel():
         x_fitted = np.linspace(xlim[0], xlim[1], 100)
         y_fitted = np.polyval(p, x_fitted)
 
-        print(f'x_fitted shape: {np.array(x_fitted)}')
-        print(f'y_test shape: {self.y_test}')
-
         # Confidence interval
         ci = t_critical * std_err * np.sqrt(1 / n + (x_fitted - np.mean(self.y_test))**2 / np.sum((self.y_test - np.mean(self.y_test))**2))
         plt.fill_between(x_fitted, y_fitted + ci, y_fitted - ci, facecolor='#b9cfe7', zorder=0, label=r'95% Confidence Interval')
 
         # Prediction Interval
-        #pi = t_critical * std_err * np.sqrt(1 + 1 / n + (x_fitted - np.mean(self.y_test))**2 / np.sum((self.y_test - np.mean(self.y_test))**2))
-        #plt.plot(x_fitted, y_fitted - pi, '--', color='0.5', label=r'95% Prediction Limits')
-        #plt.plot(x_fitted, y_fitted + pi, '--', color='0.5')
+        pi = t_critical * std_err * np.sqrt(1 + 1 / n + (x_fitted - np.mean(self.y_test))**2 / np.sum((self.y_test - np.mean(self.y_test))**2))
+        plt.plot(x_fitted, y_fitted - pi, '--', color='0.5', label=r'95% Prediction Limits')
+        plt.plot(x_fitted, y_fitted + pi, '--', color='0.5')
 
         # Title and labels
         plt.title(f'{model_name} Regression')
@@ -148,11 +154,21 @@ class LinearRegressionModel(RegressionModel):
     def __init__(self, x_train, y_train, x_test, y_test):
         super().__init__(x_train, y_train, x_test, y_test)
         self.model = LinearRegression().fit(self.x_train, self.y_train)
-        self.predictions = self.model.predict(x_test)
+        self.predictions = super().flatten_vector(self.model.predict(x_test))
         self.r2 = r2_score(self.y_test, self.predictions)
 
     def evaluation(self):
         super().get_performance_results('Linear', self.predictions, self.r2)
+
+class LassoRegressionModel(RegressionModel):
+    def __init__(self, x_train, y_train, x_test, y_test):
+        super().__init__(x_train, y_train, x_test, y_test)
+        self.model = Lasso().fit(self.x_train, self.y_train)
+        self.predictions = self.model.predict(x_test)
+        self.r2 = r2_score(self.y_test, self.predictions)
+
+    def evaluation(self):
+        super().get_performance_results('Lasso', self.predictions, self.r2)
 
 
 

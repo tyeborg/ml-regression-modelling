@@ -114,6 +114,14 @@ class LassoRegressionModel(RegressionModel):
         # Receive the standard deviation of error.
         std_err = self.get_std_err(p, dof)
 
+        print('\nSomething:\n')
+        print(f'p: {p}')
+        print(f'n: {n}')
+        print(f'm: {m}')
+        print(f'dof: {dof}')
+        print(f't_critical: {t_critical}')
+        print(f'std_err: {std_err}')
+
         # Create plot
         plt.scatter(self.y_test, self.predictions, c='gray', marker='o', edgecolors='k', s=18)
         xlim = plt.xlim()
@@ -146,7 +154,7 @@ class LassoRegressionModel(RegressionModel):
         plt.ylim(ylim)
         plt.show()
 
-class LinearRegressionModel(RegressionModel):
+class LineRegress(RegressionModel):
     def __init__(self, x_train, y_train, x_test, y_test):
         super().__init__(x_train, y_train, x_test, y_test)
         self.model = LinearRegression().fit(self.x_train, self.y_train)
@@ -198,6 +206,8 @@ class LinearRegressionModel(RegressionModel):
         # Fit the model
         y_model = model(self.y_test)
 
+        print(f'Something Predictions: {self.predictions}')
+
         # Coefficient of determination, R²
         R2 = r2_score(self.y_test, self.predictions)
         print(f'R² = {R2:.2f}')
@@ -224,8 +234,11 @@ class LinearRegressionModel(RegressionModel):
         x_fitted = np.linspace(xlim[0], xlim[1], 100)
         y_fitted = np.polyval(p, x_fitted)
 
-        print(f'x_fitted shape: {x_fitted.shape}')
-        print(f'y_test shape: {self.y_test.shape}')
+        #print('\nSomething Results:')
+        #print(f'p: {p}')
+        #print(f'n: {n}')
+        #print(f't_critical: {t_critical}')
+        #print(f'std_err: {std_err}')
 
         # Confidence interval
         ci = t_critical * std_err * np.sqrt(1 / n + (x_fitted - np.mean(self.y_test))**2 / np.sum((self.y_test - np.mean(self.y_test))**2))

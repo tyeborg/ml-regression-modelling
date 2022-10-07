@@ -67,8 +67,6 @@ class RegressionModel():
         # Fit the model.
         y_model = model(self.y_test)
 
-        print(f'Model Predictions: {predictions}')
-
         # Calculate the residuals (the error in the data, according to the model).
         resid = predictions - y_model
 
@@ -106,13 +104,6 @@ class RegressionModel():
         t_critical = self.get_t_critical(dof)
         # Receive the standard deviation of error.
         std_err = self.get_std_err(p, dof, predictions)
-
-        #print('\nModel Results:')
-        #print(f'p: {p}')
-        #print(f'n: {n}')
-        #print(f'dof: {dof}')
-        #print(f't_critical: {t_critical}')
-        #print(f'std_err: {std_err}')
 
         # Create plot
         plt.scatter(self.y_test, predictions, c='gray', marker='o', edgecolors='k', s=18)
@@ -169,16 +160,3 @@ class LassoRegressionModel(RegressionModel):
 
     def evaluation(self):
         super().get_performance_results('Lasso', self.predictions, self.r2)
-
-class BayesRegressionModel(RegressionModel):
-    def __init__(self, x_train, y_train, x_test, y_test):
-        super().__init__(x_train, y_train, x_test, y_test)
-        self.model = Lasso().fit(self.x_train, self.y_train)
-        self.predictions = super().flatten_vector(self.model.predict(x_test))
-        self.r2 = r2_score(self.y_test, self.predictions)
-
-    def evaluation(self):
-        super().get_performance_results('Checking Lasso', self.predictions, self.r2)
-
-
-

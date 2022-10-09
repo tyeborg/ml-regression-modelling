@@ -1,10 +1,8 @@
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import Lasso
-from sklearn.metrics import r2_score
-from sklearn.metrics import mean_squared_error
+from sklearn.linear_model import LinearRegression, Lasso, LassoCV
+from sklearn.metrics import mean_squared_error, r2_score
 from scipy import stats
 from text_format import TextFormat
 from abc import ABCMeta, abstractmethod
@@ -84,7 +82,7 @@ class RegressionModel():
         
         # Display R2 and RMSE
         print(f'R² = {r2:.2f}')
-        print(f'Root Mean Squared Error: {np.sqrt(mean_squared_error(self.y_test, predictions))}')
+        print(f'RMSE = {np.sqrt(mean_squared_error(self.y_test, predictions))}')
         
         # Display the model prediction performance. 
         self.display(predictions, r2, model_name)
@@ -154,9 +152,21 @@ class LinearRegressionModel(RegressionModel):
 class LassoRegressionModel(RegressionModel):
     def __init__(self, x_train, y_train, x_test, y_test):
         super().__init__(x_train, y_train, x_test, y_test)
-        self.model = Lasso().fit(self.x_train, self.y_train)
+        self.alpha = self.cross_validation()
+        self.model = Lasso(alpha = self.alpha).fit(self.x_train, self.y_train)
         self.predictions = self.model.predict(x_test)
         self.r2 = r2_score(self.y_test, self.predictions)
 
     def evaluation(self):
         super().get_performance_results('Lasso', self.predictions, self.r2)
+
+    def cross_validation(self):
+        lasso_cv = LassoCV(cv=5, max_iter=10000, random_state=0)
+
+        # Fit model
+        lasso_cv.fit(self.x_train, super().flatten_vector(self.y_train)) 
+
+        # Score
+        #print(f'Best value of penalization: {lasso_cv.alpha_}')
+
+        return lasso_cv.alpha_

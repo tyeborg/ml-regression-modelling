@@ -17,9 +17,6 @@ def display_corr(df):
         # bbox_inches - when set to 'tight' - does not allow the labels to be cropped
         plt.savefig('heatmap.png', dpi=300, bbox_inches='tight')
 
-def drop_high_corr_feats(df):
-    pass
-
 def main():
     # Import the data and set in variable.
     df = pd.read_csv('cw1data.csv')
@@ -27,28 +24,20 @@ def main():
     # Preprocess the data within the DataFrame.
     data = Preprocessing(df)
     data.clean()
-    
-    # Create the correlation matrix and select upper trigular matrix.
-    cor_matrix = df.corr().abs()
-    # Select upper trigular matrix.
-    upper_tri = cor_matrix.where(np.triu(np.ones(cor_matrix.shape),k=1).astype(np.bool))
 
-    # Select the columns that have an absolute correlation greater than 0.95 and store into list.
-    to_drop = [column for column in upper_tri.columns if any(upper_tri[column] > 0.95)]
-    print(f'Columns To Drop: {to_drop}')
+    relevant_feats = data.identify_relevant_feats()[0]
+    print(f'Most relevant columns: {relevant_feats}')
 
-    # Drop all the columns in the drop list from the dataframe
-    df = df.drop(to_drop, axis=1)
+    # Normalize the top correlated values with y.
+    df['y'] = np.log(df['y'])
+    df['x2'] = np.log(df['x2'])
 
-    # Randomly order the dataset
-    df = df.sample(frac=1)
-    
     # Declare the label and attributes in separate variables.
-    x = df.loc[:, df.columns != 'y']
+    x = df[[col for col in relevant_feats if col != 'y']]
     y = df.loc[:, df.columns == 'y']
 
     # Divide the data set into training data and testing data.
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.20, random_state=0)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.20, random_state=21)
 
     # Scale features (x)
     scaler = StandardScaler()
@@ -64,8 +53,7 @@ def main():
     lasso.evaluation()
 
 if __name__ == '__main__':
-    #try:
-        #main()
-    #except Exception:
-        #print("\nSomething went wrong...")
-    main()
+    try:
+        main()
+    except Exception:
+        print("\nSomething went wrong...")

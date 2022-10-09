@@ -55,6 +55,40 @@ class Preprocessing():
             else:
                 pass
 
+    def identify_relevant_feats(self):
+        # Pick out the relevant attributes for regression modelling.
+        # Relevant = Top attributes that have direct correlations with 'y'.
+        correlation = self.df.corr(method='pearson')
+        relevant_cols = correlation.nlargest(10, 'y').index
+
+        # Receive a list of the top two correlated values.
+        top_corr_vals = relevant_cols[:2]
+
+        # Order the features in accordance with the head order in the df.
+        relevant_copy = []
+
+        for feat in self.df.head():
+            for col in relevant_cols:
+                if col == feat:
+                    relevant_copy.append(col)
+
+        return relevant_copy, top_corr_vals
+
+    def drop_high_corr_feats(self):
+        # Create the correlation matrix and select upper trigular matrix.
+        cor_matrix = self.df.corr().abs()
+        # Select upper trigular matrix.
+        upper_tri = cor_matrix.where(np.triu(np.ones(cor_matrix.shape),k=1).astype(np.bool))
+
+        # Select the columns that have an absolute correlation greater than 0.95 and store into list.
+        to_drop = [col for col in upper_tri.columns if any(upper_tri[col] > 0.95)]
+    
+        print(f'Columns To Drop: {to_drop}')
+        # Drop all the columns in the drop list from the dataframe.
+        self.df = self.df.drop(to_drop, axis=1)
+
     def clean(self):
         self.handle_missing_values()
         self.replace_outliers()
+        # Drop all the columns in that possess an extremely high correlation.
+        self.drop_high_corr_feats()

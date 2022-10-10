@@ -22,6 +22,7 @@ def main():
     # Identify the most relevant features towards y.
     relevant_feats = data.identify_relevant_feats()[0]
     print(f'Most relevant columns: {relevant_feats}')
+    
     # Normalize the top correlated values with y.
     df['y'] = np.log(df['y'])
     df['x2'] = np.log(df['x2'])

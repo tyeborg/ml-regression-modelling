@@ -1,4 +1,6 @@
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 class Preprocessing():
     def __init__(self, df):
@@ -87,8 +89,20 @@ class Preprocessing():
         # Drop all the columns in the drop list from the dataframe.
         self.df = self.df.drop(to_drop, axis=1)
 
+    def display_corr(self):
+        plt.figure(figsize=(16, 6))
+        heatmap = sns.heatmap(self.df.corr(), vmin=-1, vmax=1, annot=True, cmap='RdPu')
+        heatmap.set_title('Correlation Heatmap', fontdict={'fontsize':18}, pad=12)
+        # save heatmap as .png file
+        # dpi - sets the resolution of the saved image in dots/inches
+        # bbox_inches - when set to 'tight' - does not allow the labels to be cropped
+        plt.savefig('heatmap.png', dpi=300, bbox_inches='tight')
+        plt.show()
+
     def clean(self):
+        # Account for missing values within the dataframe.
         self.handle_missing_values()
+        # Replace all outliers with the median of their respective column.
         self.replace_outliers()
         # Drop all the columns in that possess an extremely high correlation.
         self.drop_high_corr_feats()

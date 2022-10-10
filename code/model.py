@@ -15,6 +15,7 @@ class RegressionModel():
         self.y_train = y_train
         self.x_test = x_test
         self.y_test = y_test
+        self.model = None
 
     def flatten_vector(self, data):
         # Ensure the data is of numpy array type.
@@ -24,6 +25,13 @@ class RegressionModel():
         data = data.flatten()
 
         return data
+
+    def best_fit_line(self, x_values,y_values):
+        m = ( (x_values.mean()*y_values.mean() - (x_values*y_values).mean()) / (x_values.mean()**2 - (x_values**2).mean()) )
+
+        b = y_values.mean() - m * x_values.mean()
+
+        return m, b
 
     def get_slope_intercept(self, predictions):
         # Degree of the fitting polynomial.
@@ -40,47 +48,15 @@ class RegressionModel():
 
         return p, m, c
 
-    def get_dof(self, n, m):
-        # Degrees of freedom (number of observations - number of parameters)
-        dof = n - m
-        return dof
-
-    def get_t_critical(self, dof):
-        # Significance level
-        alpha = 0.05
-        # We're using a two-sided test
-        tails = 2
-
-        # The percent-point function (aka the quantile function) of the t-distribution
-        # gives you the critical t-value that must be met in order to get significance
-        t_critical = stats.t.ppf(1 - (alpha / tails), dof)
-
-        return t_critical
-
-    def get_std_err(self, p, dof, predictions):
-        # Model the data using the parameters of the fitted straight line.
-        y_model = np.polyval(p, self.y_test)
-
-        # Create the linear (1 degree polynomial) model
-        model = np.poly1d(p)
-
-        # Fit the model.
-        y_model = model(self.y_test)
-
-        # Calculate the residuals (the error in the data, according to the model).
-        resid = predictions - y_model
-
-        # Standard deviation of the error.
-        std_err = np.sqrt(sum(resid**2) / dof)
-        # Return the standard deviaiton of error.
-        return std_err
-
     def get_performance_results(self, model_name, predictions, r2):
         print(f'\n{TextFormat.BLUE}{TextFormat.BOLD}{model_name} Regression Results:{TextFormat.END}')
 
         # Showcase the slope and intercept.
         m, c = self.get_slope_intercept(predictions)[1], self.get_slope_intercept(predictions)[2]
         print(f'The fitted straight line has equation y = {m:.1f}x {c:=+6.1f}')
+
+        print(f'Model Slope: {self.best_fit_line(self.y_test, predictions)[0]}')
+        print(f'Model Y-Intercept: {self.best_fit_line(self.y_test, predictions)[1]}')
         
         # Display R2 and RMSE
         print(f'R² = {r2:.2f}')
@@ -93,18 +69,6 @@ class RegressionModel():
     def display(self, predictions, r2, model_name):
         # Receive the parameters from the fit of the polynomial.
         p = self.get_slope_intercept(predictions)[0]
-        # Number of observations.
-        n = predictions.size
-        # Number of parameters: equal to the degree of the fitted polynomial (ie the
-        # number of coefficients) plus 1 (ie the number of constants)
-        m = p.size
-
-        # Receive the degrees of freedom.
-        dof = self.get_dof(n, m)
-        # Receive the critical t-value.
-        t_critical = self.get_t_critical(dof)
-        # Receive the standard deviation of error.
-        std_err = self.get_std_err(p, dof, predictions)
 
         # Create plot
         plt.scatter(self.y_test, predictions, c='gray', marker='o', edgecolors='k', s=18)
@@ -113,19 +77,6 @@ class RegressionModel():
 
         # Line of best fit
         plt.plot(np.array(xlim), p[1] + p[0] * np.array(xlim), label=f'Line of Best Fit, R² = {r2:.2f}')
-
-        # Fit
-        x_fitted = np.linspace(xlim[0], xlim[1], 100)
-        y_fitted = np.polyval(p, x_fitted)
-
-        # Confidence interval
-        ci = t_critical * std_err * np.sqrt(1 / n + (x_fitted - np.mean(self.y_test))**2 / np.sum((self.y_test - np.mean(self.y_test))**2))
-        plt.fill_between(x_fitted, y_fitted + ci, y_fitted - ci, facecolor='#b9cfe7', zorder=0, label=r'95% Confidence Interval')
-
-        # Prediction Interval
-        pi = t_critical * std_err * np.sqrt(1 + 1 / n + (x_fitted - np.mean(self.y_test))**2 / np.sum((self.y_test - np.mean(self.y_test))**2))
-        plt.plot(x_fitted, y_fitted - pi, '--', color='0.5', label=r'95% Prediction Limits')
-        plt.plot(x_fitted, y_fitted + pi, '--', color='0.5')
 
         # Title and labels
         plt.title(f'{model_name} Regression')
@@ -146,6 +97,7 @@ class LinearRegressionModel(RegressionModel):
     def __init__(self, x_train, y_train, x_test, y_test):
         super().__init__(x_train, y_train, x_test, y_test)
         self.model = LinearRegression().fit(self.x_train, self.y_train)
+        RegressionModel.model = self.model
         self.predictions = super().flatten_vector(self.model.predict(x_test))
         self.r2 = r2_score(self.y_test, self.predictions)
 
@@ -157,6 +109,7 @@ class LassoRegressionModel(RegressionModel):
         super().__init__(x_train, y_train, x_test, y_test)
         self.alpha = self.cross_validation()
         self.model = Lasso(alpha = self.alpha).fit(self.x_train, self.y_train)
+        RegressionModel.model = self.model
         self.predictions = self.model.predict(x_test)
         self.r2 = r2_score(self.y_test, self.predictions)
 
@@ -165,11 +118,8 @@ class LassoRegressionModel(RegressionModel):
 
     def cross_validation(self):
         lasso_cv = LassoCV(cv=5, max_iter=10000, random_state=0)
-
         # Fit model
         lasso_cv.fit(self.x_train, super().flatten_vector(self.y_train)) 
 
-        # Score
-        #print(f'Best value of penalization: {lasso_cv.alpha_}')
-
+        # Return the Best Alpha score.
         return lasso_cv.alpha_

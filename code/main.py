@@ -8,15 +8,6 @@ from model import LinearRegressionModel, LassoRegressionModel
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-def display_corr(df):
-        plt.figure(figsize=(16, 6))
-        heatmap = sns.heatmap(df.corr(), vmin=-1, vmax=1, annot=True, cmap='BrBG')
-        heatmap.set_title('Correlation Heatmap', fontdict={'fontsize':18}, pad=12)
-        # save heatmap as .png file
-        # dpi - sets the resolution of the saved image in dots/inches
-        # bbox_inches - when set to 'tight' - does not allow the labels to be cropped
-        plt.savefig('heatmap.png', dpi=300, bbox_inches='tight')
-
 def main():
     # Import the data and set in variable.
     df = pd.read_csv('cw1data.csv')
@@ -25,9 +16,12 @@ def main():
     data = Preprocessing(df)
     data.clean()
 
+    # Display the all correlations between features.
+    data.display_corr()
+
+    # Identify the most relevant features towards y.
     relevant_feats = data.identify_relevant_feats()[0]
     print(f'Most relevant columns: {relevant_feats}')
-
     # Normalize the top correlated values with y.
     df['y'] = np.log(df['y'])
     df['x2'] = np.log(df['x2'])

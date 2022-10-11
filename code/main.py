@@ -35,7 +35,7 @@ def main():
     y = df.loc[:, df.columns == 'y']
 
     # Divide the data set into training data and testing data.
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.20, random_state=62)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.20, random_state=57)
 
     # Scale features (x)
     scaler = StandardScaler()
@@ -45,6 +45,8 @@ def main():
     # Apply and visualize Linear Regression Performance.
     linear = LinearRegressionModel(x_train, y_train, x_test, y_test)
     linear.evaluation()
+
+    # [1, 38, 43, 57]
 
     # Apply and visualize Lasso Regression Performance.
     lasso = LassoRegressionModel(x_train, y_train, x_test, y_test)

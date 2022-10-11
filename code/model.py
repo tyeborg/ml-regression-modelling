@@ -2,12 +2,12 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression, Lasso, LassoCV
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_squared_error, r2_score
 from scipy import stats
 from text_format import TextFormat
 from abc import ABCMeta, abstractmethod
+import pandas as pd
+from tabulate import tabulate
 
 class RegressionModel():
     def __init__(self, x_train, y_train, x_test, y_test):
@@ -15,7 +15,6 @@ class RegressionModel():
         self.y_train = y_train
         self.x_test = x_test
         self.y_test = y_test
-        self.model = None
 
     def flatten_vector(self, data):
         # Ensure the data is of numpy array type.
@@ -55,10 +54,10 @@ class RegressionModel():
         m, c = self.get_slope_intercept(predictions)[1], self.get_slope_intercept(predictions)[2]
         print(f'The fitted straight line has equation y = {m:.1f}x {c:=+6.1f}')
 
-        print(f'Model Slope: {self.best_fit_line(self.y_test, predictions)[0]}')
-        print(f'Model Y-Intercept: {self.best_fit_line(self.y_test, predictions)[1]}')
+        #print(f'Model Slope: {self.best_fit_line(self.y_test, predictions)[0]}')
+        #print(f'Model Y-Intercept: {self.best_fit_line(self.y_test, predictions)[1]}')
         
-        # Display R2 and RMSE
+        # Display R2, MSE, and RMSE
         print(f'R² = {r2:.2f}')
         print(f'MSE = {mean_squared_error(self.y_test, predictions)}')
         print(f'RMSE = {np.sqrt(mean_squared_error(self.y_test, predictions))}')
@@ -71,7 +70,7 @@ class RegressionModel():
         p = self.get_slope_intercept(predictions)[0]
 
         # Create plot
-        plt.scatter(self.y_test, predictions, c='gray', marker='o', edgecolors='k', s=18)
+        plt.scatter(self.y_test, predictions, c='mediumpurple', marker='o', edgecolors='k', s=18)
         xlim = plt.xlim()
         ylim = plt.ylim()
 
@@ -89,6 +88,25 @@ class RegressionModel():
         plt.ylim(ylim)
         plt.show()
 
+    def make_comparisons(self, predictions):
+        compare = pd.DataFrame({'Prediction': predictions, 'Test Data': self.y_test})
+        print("\nComparisons between the raw predicted values & corresponding test data:")
+        print(tabulate(compare.head(10), headers="keys", showindex=False, tablefmt="psql"))
+
+    def make_accurate_comparisons(self, predictions):
+        # Transform the data back to its original state.
+        actual_y_test = np.exp(self.y_test)
+        actual_predictions = np.exp(predictions)
+
+        # Calculate the difference between the Test Data and the Predictions.
+        diff = abs(actual_y_test - actual_predictions)
+
+        # Display the results in table form.
+        actual_compare = pd.DataFrame({'Test Data': actual_y_test, 'Prediction': actual_predictions, 'Difference': diff})
+        actual_compare = actual_compare.astype(float).round(2)
+        print("\nComparisons of the actual values (before transformations):")
+        print(tabulate(actual_compare.head(10), headers="keys", showindex=False, tablefmt="psql"))
+
     @abstractmethod
     def evaluation(self):
         pass
@@ -97,27 +115,29 @@ class LinearRegressionModel(RegressionModel):
     def __init__(self, x_train, y_train, x_test, y_test):
         super().__init__(x_train, y_train, x_test, y_test)
         self.model = LinearRegression().fit(self.x_train, self.y_train)
-        RegressionModel.model = self.model
         self.predictions = super().flatten_vector(self.model.predict(x_test))
         self.r2 = r2_score(self.y_test, self.predictions)
 
     def evaluation(self):
         super().get_performance_results('Linear', self.predictions, self.r2)
+        super().make_comparisons(self.predictions)
+        super().make_accurate_comparisons(self.predictions)
 
 class LassoRegressionModel(RegressionModel):
     def __init__(self, x_train, y_train, x_test, y_test):
         super().__init__(x_train, y_train, x_test, y_test)
         self.alpha = self.cross_validation()
         self.model = Lasso(alpha = self.alpha).fit(self.x_train, self.y_train)
-        RegressionModel.model = self.model
         self.predictions = self.model.predict(x_test)
         self.r2 = r2_score(self.y_test, self.predictions)
 
     def evaluation(self):
         super().get_performance_results('Lasso', self.predictions, self.r2)
+        super().make_comparisons(self.predictions)
+        super().make_accurate_comparisons(self.predictions)
 
     def cross_validation(self):
-        lasso_cv = LassoCV(cv=5, max_iter=10000, random_state=0)
+        lasso_cv = LassoCV(cv=5, max_iter=10000, random_state=62)
         # Fit model
         lasso_cv.fit(self.x_train, super().flatten_vector(self.y_train)) 
 

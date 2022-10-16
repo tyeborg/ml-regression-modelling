@@ -1,13 +1,16 @@
+import random
 import numpy as np
+import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
-from sklearn.linear_model import LinearRegression, Lasso, LassoCV
-from sklearn.metrics import mean_squared_error, r2_score
 from scipy import stats
+from tabulate import tabulate
+import matplotlib.pyplot as plt
 from text_format import TextFormat
 from abc import ABCMeta, abstractmethod
-import pandas as pd
-from tabulate import tabulate
+from sklearn.feature_selection import RFE
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.model_selection import KFold, cross_val_score, GridSearchCV, RepeatedKFold
+from sklearn.linear_model import LinearRegression, Lasso, LassoCV, ElasticNet, ElasticNetCV
 
 class RegressionModel():
     def __init__(self, x_train, y_train, x_test, y_test):
@@ -24,13 +27,6 @@ class RegressionModel():
         data = data.flatten()
 
         return data
-
-    def best_fit_line(self, x_values,y_values):
-        m = ( (x_values.mean()*y_values.mean() - (x_values*y_values).mean()) / (x_values.mean()**2 - (x_values**2).mean()) )
-
-        b = y_values.mean() - m * x_values.mean()
-
-        return m, b
 
     def get_slope_intercept(self, predictions):
         # Degree of the fitting polynomial.
@@ -53,9 +49,6 @@ class RegressionModel():
         # Showcase the slope and intercept.
         m, c = self.get_slope_intercept(predictions)[1], self.get_slope_intercept(predictions)[2]
         print(f'The fitted straight line has equation y = {m:.1f}x {c:=+6.1f}')
-
-        #print(f'Model Slope: {self.best_fit_line(self.y_test, predictions)[0]}')
-        #print(f'Model Y-Intercept: {self.best_fit_line(self.y_test, predictions)[1]}')
         
         # Display R2, MSE, and RMSE
         print(f'R² = {r2:.2f}')
@@ -86,6 +79,7 @@ class RegressionModel():
         plt.legend(fontsize=8)
         plt.xlim(xlim)
         plt.ylim(ylim)
+        plt.savefig(f'{model_name.lower()}plot.png')
         plt.show()
 
     def make_comparisons(self, predictions):
@@ -107,6 +101,10 @@ class RegressionModel():
         print("\nComparisons of the actual values (before transformations):")
         print(tabulate(actual_compare.head(10), headers="keys", showindex=False, tablefmt="psql"))
 
+    @abstractmethod 
+    def cross_validation(self):
+        pass
+
     @abstractmethod
     def evaluation(self):
         pass
@@ -114,25 +112,62 @@ class RegressionModel():
 class LinearRegressionModel(RegressionModel):
     def __init__(self, x_train, y_train, x_test, y_test):
         super().__init__(x_train, y_train, x_test, y_test)
-        self.model = LinearRegression().fit(self.x_train, self.y_train)
+        # Create the Linear Regression Model.
+        self.model = self.cross_validation()
+        #self.model = LinearRegression().fit(self.x_train, self.y_train)
+
+        # Receive the predictions of x_test from the model.
         self.predictions = super().flatten_vector(self.model.predict(x_test))
+
+        # Declare the r2 score and slope-intercept variables.
         self.r2 = r2_score(self.y_test, self.predictions)
+        self.p = super().get_slope_intercept(self.predictions)[0]
 
     def evaluation(self):
+        # Receive the performance results of the Linear Regression Model.
         super().get_performance_results('Linear', self.predictions, self.r2)
+        # Display comparisons between the predicted y_test values and the actual y_test values.
         super().make_comparisons(self.predictions)
         super().make_accurate_comparisons(self.predictions)
+
+    def cross_validation(self):
+        # Creating a KFold object with 5 splits.
+        folds = KFold(n_splits = 5, shuffle = True)
+
+        # Specify range of hyperparameters.
+        hyper_params = [{'n_features_to_select': list(range(2, 40))}]
+
+        # Specify the model.
+        linear_model = LinearRegression().fit(self.x_train, self.y_train)
+        rfe = RFE(linear_model)
+
+        # Set up GridSearchCV()
+        linear_cv = GridSearchCV(estimator=rfe, param_grid=hyper_params, 
+            scoring='r2', cv=folds, return_train_score=True)
+
+        # Fit the model
+        linear_cv.fit(self.x_train, self.y_train)
+
+        return linear_cv
 
 class LassoRegressionModel(RegressionModel):
     def __init__(self, x_train, y_train, x_test, y_test):
         super().__init__(x_train, y_train, x_test, y_test)
+        # Declare and set the best alpha for the Lasso Regression Model.
         self.alpha = self.cross_validation()
+
+        # Create the Lasso Regression Model.
         self.model = Lasso(alpha = self.alpha).fit(self.x_train, self.y_train)
-        self.predictions = self.model.predict(x_test)
+
+        # Receive the predictions, r2 score, and slope-intercept from the model.
+        self.predictions = self.model.predict(self.x_test)
         self.r2 = r2_score(self.y_test, self.predictions)
+        self.p = super().get_slope_intercept(self.predictions)[0]
 
     def evaluation(self):
+        # Receive the performance results of the Lasso Regression Model.
         super().get_performance_results('Lasso', self.predictions, self.r2)
+        # Display comparisons between the predicted y_test values and the actual y_test values.
         super().make_comparisons(self.predictions)
         super().make_accurate_comparisons(self.predictions)
 
@@ -143,3 +178,49 @@ class LassoRegressionModel(RegressionModel):
 
         # Return the Best Alpha score.
         return lasso_cv.alpha_
+
+class ElasticRegressionModel(RegressionModel):
+    def __init__(self, x_train, y_train, x_test, y_test):
+        super().__init__(x_train, y_train, x_test, y_test)
+        # Initialize the chosen configurations from cross validation.
+        self.alpha = self.cross_validation()[0]
+        self.ratio = self.cross_validation()[1]
+
+        # Create the Elastic Net Regression Model.
+        self.model = ElasticNet(alpha=self.alpha, l1_ratio=self.ratio).fit(self.x_train, self.y_train)
+
+        # Receive the predictions, r2 score, and slope-intercept from the model.
+        self.predictions = self.model.predict(self.x_test)
+        self.r2 = r2_score(self.y_test, self.predictions)
+        self.p = super().get_slope_intercept(self.predictions)[0]
+
+    def evaluation(self):
+        # Receive the performance results of the Lasso Regression Model.
+        super().get_performance_results('Elastic Net', self.predictions, self.r2)
+        # Display comparisons between the predicted y_test values and the actual y_test values.
+        super().make_comparisons(self.predictions)
+        super().make_accurate_comparisons(self.predictions)
+
+    def cross_validation(self):
+        # Initialize a random seed for the random state hyper parameter.
+        seed = random.randrange(100000)
+        # Define model evaluation method.
+        #cv = RepeatedKFold(n_splits=5, n_repeats=10000 ,random_state=62)
+
+        # Define model.
+        ratios = np.arange(0, 1, 0.01)
+        alphas = [.05, .15, .5, .7, .9, .95, .99, 1]
+        #elastic_cv = ElasticNetCV(l1_ratio=ratios, alphas=alphas, cv=10, n_jobs=8)
+        elastic_cv = ElasticNetCV(cv=10)
+
+        # Fit model.
+        elastic_cv.fit(self.x_train, super().flatten_vector(self.y_train))
+
+        # Return the chosen configurations.
+        return elastic_cv.alpha_, elastic_cv.l1_ratio
+
+
+
+
+
+

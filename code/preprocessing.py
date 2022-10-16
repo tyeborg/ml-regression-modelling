@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -64,7 +65,7 @@ class Preprocessing():
         relevant_cols = correlation.nlargest(10, 'y').index
 
         # Receive a list of the top two correlated values.
-        top_corr_vals = relevant_cols[:2]
+        #top_corr_vals = relevant_cols[:2]
 
         # Order the features in accordance with the head order in the df.
         relevant_copy = []
@@ -74,29 +75,65 @@ class Preprocessing():
                 if col == feat:
                     relevant_copy.append(col)
 
-        return relevant_copy, top_corr_vals
+        return relevant_copy
 
-    def drop_high_corr_feats(self):
+    def drop_high_corr_feats(self, filter_threshold = 0.95):
         # Create the correlation matrix and select upper trigular matrix.
-        cor_matrix = self.df.corr().abs()
+        corr_matrix = self.df.corr().abs()
         # Select upper trigular matrix.
-        upper_tri = cor_matrix.where(np.triu(np.ones(cor_matrix.shape),k=1).astype(np.bool))
+        upper_tri = corr_matrix.where(np.triu(np.ones(corr_matrix.shape),k=1).astype(np.bool))
 
         # Select the columns that have an absolute correlation greater than 0.95 and store into list.
-        to_drop = [col for col in upper_tri.columns if any(upper_tri[col] > 0.95)]
+        to_drop = [col for col in upper_tri.columns if any(upper_tri[col] > filter_threshold)]
     
-        print(f'Columns To Drop: {to_drop}')
+        print(f'Dropped Columns: {to_drop}')
         # Drop all the columns in the drop list from the dataframe.
         self.df = self.df.drop(to_drop, axis=1)
 
+    # Identify the features to normalize.
+    def feats_to_normalize(self, normalization_threshold = 0.80):
+        # Declare the correlation matrix between all features.
+        corr_matrix = self.df.corr()
+        # Create a dataframe that maps correlations to the target variable: 'y'.
+        corr_values = pd.DataFrame(corr_matrix["y"].sort_values(ascending=False))
+
+        # Declare a list to store all feats that pass the normalization threshold.
+        column_corr = []
+
+        # Identify which columns pass the normalization threshold (0.80).
+        for col in corr_values.columns:
+            for idx, row in corr_values.iterrows():
+                if(row[col]> normalization_threshold) and (row[col]<1):
+                    if (idx not in column_corr):
+                        column_corr.append(idx)
+                    if (col not in column_corr):
+                        column_corr.append(col)
+
+        return column_corr
+
     def display_corr(self):
-        plt.figure(figsize=(16, 6))
-        heatmap = sns.heatmap(self.df.corr(), vmin=-1, vmax=1, annot=True, cmap='RdPu')
-        heatmap.set_title('Correlation Heatmap', fontdict={'fontsize':18}, pad=12)
-        # save heatmap as .png file
-        # dpi - sets the resolution of the saved image in dots/inches
-        # bbox_inches - when set to 'tight' - does not allow the labels to be cropped
-        plt.savefig('heatmap.png', dpi=300, bbox_inches='tight')
+        # Plot a "pretty" version of the correlation matrix 
+        # Based on: https://seaborn.pydata.org/examples/many_pairwise_correlations.html
+        # Given that the correlation table is symmetrical, we remove one side 
+
+        # Declare correlation matrix
+        corr_matrix = self.df.corr()
+
+        # Generate a mask for the upper triangle
+        mask = np.zeros_like(corr_matrix, dtype=np.bool)
+        mask[np.triu_indices_from(mask)] = True
+
+        # Set up the matplotlib figure
+        f, ax = plt.subplots(figsize=(10, 8))
+
+        # Generate a custom diverging colormap
+        cmap = sns.diverging_palette(220, 10, as_cmap=True)
+
+        # Draw the heatmap with the mask and correct aspect ratio
+        sns.heatmap(corr_matrix, mask=mask, cmap=cmap, vmax=1, center=0, 
+            square=True, linewidths=.5, cbar_kws={"shrink": .5}, annot=True)
+
+        plt.savefig("heatmap.png", dpi=300, bbox_inches='tight')
         plt.show()
 
     def clean(self):

@@ -14,22 +14,29 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.feature_selection import VarianceThreshold
 import random
 
-def model_diff_plot(self, linear, lasso, y_test, p1, p2):
-    plt.scatter(x=y_test, y=linear.predictions, c='navy', marker='o', edgecolors='k', s=18, alpha=0.7)
-    plt.scatter(x=y_test, y=lasso.predictions, c='mediumvioletred', marker='o', edgecolors='k', s=18, alpha=0.7)
-    xlim = plt.xlim()
-    ylim = plt.ylim()
+def display_corr(df):
+    # Plot a "pretty" version of the correlation matrix 
+    # Based on: https://seaborn.pydata.org/examples/many_pairwise_correlations.html
+    # Given that the correlation table is symmetrical, we remove one side 
 
-    # Line of best fit
-    plt.plot(np.array(xlim), p1[1] + p1[0] * np.array(xlim), c='navy', alpha=0.7, linewidth=1.5)
-    # Line of best fit
-    plt.plot(np.array(xlim), p2[1] + p2[0] * np.array(xlim), c='mediumvioletred', alpha=0.7, linewidth=1.5)
+    # Declare correlation matrix
+    corr_matrix = df.corr()
 
+    # Generate a mask for the upper triangle
+    mask = np.zeros_like(corr_matrix, dtype=np.bool)
+    mask[np.triu_indices_from(mask)] = True
 
-    classes = ['Linear Model Predictions', 'Lasso Model Predictions']
-    plt.legend(labels=classes, fontsize=8)
-    plt.xlim(xlim)
-    plt.ylim(ylim)
+    # Set up the matplotlib figure
+    f, ax = plt.subplots(figsize=(10, 8))
+
+    # Generate a custom diverging colormap
+    cmap = sns.diverging_palette(220, 10, as_cmap=True)
+
+    # Draw the heatmap with the mask and correct aspect ratio
+    sns.heatmap(corr_matrix, mask=mask, cmap=cmap, vmax=1, center=0, 
+        square=True, linewidths=.5, cbar_kws={"shrink": .5}, annot=True)
+
+    plt.savefig("heatmap.png", dpi=300, bbox_inches='tight')
     plt.show()
 
 def main():
@@ -42,11 +49,10 @@ def main():
     data.clean()
 
     # Display the all correlations between features.
-    data.display_corr()
+    #display_corr(data.df)
 
     # Identify the most relevant features towards y.
     relevant_feats = data.identify_relevant_feats()
-    #print(f'Most relevant columns: {relevant_feats}')
     
     # Normalize the features that have above 0.8 correlation to y.
     column_corr = data.feats_to_normalize()
@@ -58,9 +64,8 @@ def main():
     x = df[[col for col in relevant_feats if col != 'y']]
     y = df.loc[:, df.columns == 'y']
 
-    seed = random.randrange(100000)
-
-    # Great Random States: [1, 38, 43, 57, 80, 98, 104, 173, 184, 242]
+    # Initialize a random integer for the random state hyper parameter.
+    seed = random.randrange(10000000)
     # Divide the data set into training data and testing data.
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.20, random_state=seed)
 
@@ -72,14 +77,17 @@ def main():
     # Apply and visualize Linear Regression Performance.
     linear = LinearRegressionModel(x_train, y_train, x_test, y_test)
     linear.evaluation()
+    
+    print(f'Train Error Percentage: {linear.train_error}%')
+    print(f'Test Error Percentage: {linear.test_error}%')
 
     # Apply and visualize Lasso Regression Performance.
-    lasso = LassoRegressionModel(x_train, y_train, x_test, y_test)
-    lasso.evaluation()
+    #lasso = LassoRegressionModel(x_train, y_train, x_test, y_test)
+    #lasso.evaluation()
 
     # Apply and visualize Elastic Net Regression Performance.
-    elastic = ElasticRegressionModel(x_train, y_train, x_test, y_test)
-    elastic.evaluation()
+    #elastic = ElasticRegressionModel(x_train, y_train, x_test, y_test)
+    #elastic.evaluation()
 
 if __name__ == '__main__':
     try:

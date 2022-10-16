@@ -111,31 +111,6 @@ class Preprocessing():
 
         return column_corr
 
-    def display_corr(self):
-        # Plot a "pretty" version of the correlation matrix 
-        # Based on: https://seaborn.pydata.org/examples/many_pairwise_correlations.html
-        # Given that the correlation table is symmetrical, we remove one side 
-
-        # Declare correlation matrix
-        corr_matrix = self.df.corr()
-
-        # Generate a mask for the upper triangle
-        mask = np.zeros_like(corr_matrix, dtype=np.bool)
-        mask[np.triu_indices_from(mask)] = True
-
-        # Set up the matplotlib figure
-        f, ax = plt.subplots(figsize=(10, 8))
-
-        # Generate a custom diverging colormap
-        cmap = sns.diverging_palette(220, 10, as_cmap=True)
-
-        # Draw the heatmap with the mask and correct aspect ratio
-        sns.heatmap(corr_matrix, mask=mask, cmap=cmap, vmax=1, center=0, 
-            square=True, linewidths=.5, cbar_kws={"shrink": .5}, annot=True)
-
-        plt.savefig("heatmap.png", dpi=300, bbox_inches='tight')
-        plt.show()
-
     def clean(self):
         # Account for missing values within the dataframe.
         self.handle_missing_values()

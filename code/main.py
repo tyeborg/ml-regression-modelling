@@ -13,6 +13,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.feature_selection import VarianceThreshold
 import random
+from tabulate import tabulate
 
 def display_corr(df):
     # Plot a "pretty" version of the correlation matrix 
@@ -37,6 +38,20 @@ def display_corr(df):
         square=True, linewidths=.5, cbar_kws={"shrink": .5}, annot=True)
 
     plt.savefig("heatmap.png", dpi=300, bbox_inches='tight')
+    plt.show()
+
+def compare_model_errors(linear, lasso, elastic):
+    train_error = [linear.train_error, lasso.train_error, elastic.train_error]
+    test_error = [linear.test_error, lasso.test_error, elastic.test_error]
+
+    col = {'Train Error': train_error, 'Test Error': test_error}
+    models = ['Linear', 'Lasso', 'Elastic']
+
+    df = pd.DataFrame(data=col, index=models)
+    print(tabulate(df, headers="keys", showindex=True, tablefmt="psql"))
+
+    df.plot(kind='bar')
+    plt.savefig("comparisonplot.png", dpi=300, bbox_inches='tight')
     plt.show()
 
 def main():
@@ -77,17 +92,16 @@ def main():
     # Apply and visualize Linear Regression Performance.
     linear = LinearRegressionModel(x_train, y_train, x_test, y_test)
     linear.evaluation()
-    
-    print(f'Train Error Percentage: {linear.train_error}%')
-    print(f'Test Error Percentage: {linear.test_error}%')
 
     # Apply and visualize Lasso Regression Performance.
-    #lasso = LassoRegressionModel(x_train, y_train, x_test, y_test)
-    #lasso.evaluation()
+    lasso = LassoRegressionModel(x_train, y_train, x_test, y_test)
+    lasso.evaluation()
 
     # Apply and visualize Elastic Net Regression Performance.
-    #elastic = ElasticRegressionModel(x_train, y_train, x_test, y_test)
-    #elastic.evaluation()
+    elastic = ElasticRegressionModel(x_train, y_train, x_test, y_test)
+    elastic.evaluation()
+
+    compare_model_errors(linear, lasso, elastic)
 
 if __name__ == '__main__':
     try:

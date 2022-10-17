@@ -21,6 +21,12 @@ class RegressionModel():
         self.y_train = self.flatten_vector(y_train)
         self.x_test = x_test
         self.y_test = self.flatten_vector(y_test)
+        self.model = None
+        self.y_test_predictions = None
+        self.y_train_predictions = None
+        self.r2 = None
+        self.test_error = None
+        self.train_error = None
 
     @abstractmethod 
     def cross_validation(self):
@@ -29,6 +35,21 @@ class RegressionModel():
     @abstractmethod
     def evaluation(self):
         pass
+
+    def set_variables(self, model):
+        # Set the model.
+        self.model = model
+
+        # Receive the test and train predictions from the model.
+        self.y_test_predictions = self.model.predict(self.x_test)
+        self.y_train_predictions = self.model.predict(self.x_train)
+
+        # Receive the r2 score of the model.
+        self.r2 = r2_score(self.y_test, self.y_test_predictions)
+
+        # Calculate the model percentage error.
+        self.test_error = self.get_error_percentage(self.y_test, self.y_test_predictions)
+        self.train_error = self.get_error_percentage(self.y_train, self.y_train_predictions)
 
     def flatten_vector(self, data):
         # Ensure the data is of numpy array type.
@@ -124,24 +145,16 @@ class LinearRegressionModel(RegressionModel):
         super().__init__(x_train, y_train, x_test, y_test)
         # Create the Linear Regression Model.
         self.model = self.cross_validation()
-
-        # Receive the predictions from the model.
-        self.test_predictions = self.model.predict(self.x_test)
-        self.train_predictions = self.model.predict(self.x_train)
-
-        # Declare the r2 score and slope-intercept variables.
-        self.r2 = r2_score(self.y_test, self.test_predictions)
-        self.p = super().get_slope_intercept(self.test_predictions)[0]
-
-        self.test_error = super().get_error_percentage(self.y_test, self.test_predictions)
-        self.train_error = super().get_error_percentage(self.y_train, self.train_predictions)
+        # Set the variables declared in the parent class.
+        super().set_variables(self.model)
 
     def evaluation(self):
         # Receive the performance results of the Linear Regression Model.
-        super().get_performance_results('Linear', self.test_predictions, self.r2)
+        super().get_performance_results('Linear', self.y_test_predictions, self.r2)
+
         # Display comparisons between the predicted y_test values and the actual y_test values.
-        super().make_comparisons(self.test_predictions)
-        super().make_accurate_comparisons(self.test_predictions)
+        super().make_comparisons(self.y_test_predictions)
+        super().make_accurate_comparisons(self.y_test_predictions)
 
     def cross_validation(self):
         # Creating a KFold object with 5 splits.
@@ -169,18 +182,16 @@ class LassoRegressionModel(RegressionModel):
         super().__init__(x_train, y_train, x_test, y_test)
         # Create the Lasso Regression Model.
         self.model = self.cross_validation()
-
-        # Receive the predictions, r2 score, and slope-intercept from the model.
-        self.predictions = self.model.predict(self.x_test)
-        self.r2 = r2_score(self.y_test, self.predictions)
-        self.p = super().get_slope_intercept(self.predictions)[0]
-
+        # Set the variables declared in the parent class.
+        super().set_variables(self.model)
+        
     def evaluation(self):
         # Receive the performance results of the Lasso Regression Model.
-        super().get_performance_results('Lasso', self.predictions, self.r2)
+        super().get_performance_results('Lasso', self.y_test_predictions, self.r2)
+
         # Display comparisons between the predicted y_test values and the actual y_test values.
-        super().make_comparisons(self.predictions)
-        super().make_accurate_comparisons(self.predictions)
+        super().make_comparisons(self.y_test_predictions)
+        super().make_accurate_comparisons(self.y_test_predictions)
 
     def cross_validation(self):
         # Define the model.
@@ -197,18 +208,16 @@ class ElasticRegressionModel(RegressionModel):
         super().__init__(x_train, y_train, x_test, y_test)
         # Create the Elastic Net Regression Model.
         self.model = self.cross_validation()
-
-        # Receive the predictions, r2 score, and slope-intercept from the model.
-        self.predictions = self.model.predict(self.x_test)
-        self.r2 = r2_score(self.y_test, self.predictions)
-        self.p = super().get_slope_intercept(self.predictions)[0]
+        # Set the variables declared in the parent class.
+        super().set_variables(self.model)
 
     def evaluation(self):
         # Receive the performance results of the Lasso Regression Model.
-        super().get_performance_results('Elastic', self.predictions, self.r2)
+        super().get_performance_results('Elastic', self.y_test_predictions, self.r2)
+
         # Display comparisons between the predicted y_test values and the actual y_test values.
-        super().make_comparisons(self.predictions)
-        super().make_accurate_comparisons(self.predictions)
+        super().make_comparisons(self.y_test_predictions)
+        super().make_accurate_comparisons(self.y_test_predictions)
 
     def cross_validation(self):
         # Define model.

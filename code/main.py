@@ -4,7 +4,6 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from preprocessing import Preprocessing
-from model import LinearRegressionModel, LassoRegressionModel, ElasticRegressionModel
 from text_format import TextFormat
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -14,6 +13,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.feature_selection import VarianceThreshold
 import random
 from tabulate import tabulate
+from model import LinearRegressionModel, LassoRegressionModel, ElasticRegressionModel, KNeighborsRegressorModel, RidgeModel
 
 def display_corr(df):
     # Plot a "pretty" version of the correlation matrix 
@@ -40,12 +40,12 @@ def display_corr(df):
     plt.savefig("heatmap.png", dpi=300, bbox_inches='tight')
     plt.show()
 
-def compare_model_errors(linear, lasso, elastic):
-    train_error = [linear.train_error, lasso.train_error, elastic.train_error]
-    test_error = [linear.test_error, lasso.test_error, elastic.test_error]
+def compare_model_errors(linear, lasso, elastic, knn, ridge):
+    train_error = [linear.train_error, lasso.train_error, elastic.train_error, knn.train_error, ridge.train_error]
+    test_error = [linear.test_error, lasso.test_error, elastic.test_error, knn.test_error, ridge.test_error]
 
-    col = {'Train Error': train_error, 'Test Error': test_error}
-    models = ['Linear', 'Lasso', 'Elastic']
+    col = {'Train Error (%)': train_error, 'Test Error (%)': test_error}
+    models = ['Linear', 'Lasso', 'Elastic', 'KNN', 'Ridge']
 
     df = pd.DataFrame(data=col, index=models)
     print(tabulate(df, headers="keys", showindex=True, tablefmt="psql"))
@@ -101,10 +101,17 @@ def main():
     elastic = ElasticRegressionModel(x_train, y_train, x_test, y_test)
     elastic.evaluation()
 
-    compare_model_errors(linear, lasso, elastic)
+    knn = KNeighborsRegressorModel(x_train, y_train, x_test, y_test)
+    knn.evaluation()
+
+    ridge = RidgeModel(x_train, y_train, x_test, y_test)
+    ridge.evaluation()
+
+    #print("\n")
+    #compare_model_errors(linear, lasso, elastic, knn, ridge)
 
 if __name__ == '__main__':
-    try:
-        main()
-    except Exception:
-        print("\nSomething went wrong...")
+    #try:
+    main()
+    #except Exception:
+        #print("\nSomething went wrong...")

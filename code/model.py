@@ -5,12 +5,22 @@ import seaborn as sns
 from scipy import stats
 from tabulate import tabulate
 import matplotlib.pyplot as plt
+
+# PIP install plotly
+import plotly.graph_objs as go
+#pip install chart-studio
+from chart_studio import plotly as py
+from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+init_notebook_mode(connected=True)
+
+import os
 from text_format import TextFormat
 from abc import ABCMeta, abstractmethod
 from sklearn.feature_selection import RFE
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import KFold, cross_val_score, GridSearchCV
-from sklearn.linear_model import LinearRegression, Lasso, LassoCV, ElasticNet, ElasticNetCV
+from sklearn.linear_model import LinearRegression, Lasso, LassoCV, ElasticNet, ElasticNetCV, Ridge, RidgeCV
 
 class RegressionModel():
     # Initialize a class variable for the random state hyper parameter.
@@ -21,6 +31,8 @@ class RegressionModel():
         self.y_train = self.flatten_vector(y_train)
         self.x_test = x_test
         self.y_test = self.flatten_vector(y_test)
+
+        # Declare variables to be utlized within the child classes.
         self.model = None
         self.y_test_predictions = None
         self.y_train_predictions = None
@@ -60,32 +72,16 @@ class RegressionModel():
         
         return data
 
-    def get_slope_intercept(self, predictions):
-        # Degree of the fitting polynomial.
-        deg = 1
-
-        # Parameters from the fit of the polynomial.
-        p = np.polyfit(self.y_test, predictions, deg)
-        m = p[0]
-        c = p[1]
-
-        return p, m, c
-
-    def get_performance_results(self, model_name, predictions, r2):
-        print(f'\n{TextFormat.BLUE}{TextFormat.BOLD}{model_name} Regression Results:{TextFormat.END}')
-
-        # Showcase the slope and intercept.
-        m, c = self.get_slope_intercept(predictions)[1], self.get_slope_intercept(predictions)[2]
-        print(f'The fitted straight line has equation y = {m:.1f}x {c:=+6.1f}')
+    def get_performance_results(self, model_name):
+        print(f'\n{TextFormat.BLUE}{TextFormat.BOLD}{model_name} Results:{TextFormat.END}')
         
         # Display R2, MSE, and RMSE
-        print(f'R² = {r2:.2f}')
-        print(f'MSE = {mean_squared_error(self.y_test, predictions)}')
-        print(f'RMSE = {np.sqrt(mean_squared_error(self.y_test, predictions))}')
-        
-        # Display the model prediction performance. 
-        self.display(predictions, r2, model_name)
+        print(f'R² = {self.r2:.2f}')
+        print(f'MSE = {mean_squared_error(self.y_test, self.y_test_predictions)}')
+        print(f'RMSE = {np.sqrt(mean_squared_error(self.y_test, self.y_test_predictions))}')
 
+        self.display(model_name)
+        
     def get_error_percentage(self, data, predictions):
         data = list(data)
         predictions = list(predictions)
@@ -94,18 +90,18 @@ class RegressionModel():
         for i in range(len(data)):
             error += (abs(predictions[i] - data[i]) / data[i])
 
-        error_percentage = ((error / len(data)) * 100).round(2)
+        error_percentage = (error / len(data) * 100).round(2) 
         return error_percentage
         
-    def make_comparisons(self, predictions):
-        compare = pd.DataFrame({'Test Data': self.y_test, 'Prediction': predictions})
+    def make_comparisons(self):
+        compare = pd.DataFrame({'Test Data': self.y_test, 'Prediction': self.y_test_predictions})
         print("\nTest Data vs Predicted Values:")
         print(tabulate(compare.head(5), headers="keys", showindex=False, tablefmt="psql"))
 
-    def make_accurate_comparisons(self, predictions):
+    def make_accurate_comparisons(self):
         # Transform the data back to its original state.
         actual_y_test = np.exp(self.y_test)
-        actual_predictions = np.exp(predictions)
+        actual_predictions = np.exp(self.y_test_predictions)
 
         # Calculate the difference between the Test Data and the Predictions.
         diff = abs(actual_y_test - actual_predictions)
@@ -116,29 +112,41 @@ class RegressionModel():
         print("\nTest Data vs Predicted Values (reverted):")
         print(tabulate(actual_compare.head(5), headers="keys", showindex=False, tablefmt="psql"))
 
-    def display(self, predictions, r2, model_name):
-        # Receive the parameters from the fit of the polynomial.
-        p = self.get_slope_intercept(predictions)[0]
+    def display(self, model_name):
+        trace0 = go.Scatter(
+            y=self.y_test, 
+            x=np.arange(len(self.y_test_predictions)), 
+            mode='lines', 
+            name='Y Test', 
+            marker=dict(
+                color='rgb(10, 150, 50)'
+            )
+        )
 
-        # Create plot
-        plt.scatter(self.y_test, predictions, c='mediumpurple', marker='o', edgecolors='k', s=18)
-        xlim = plt.xlim()
-        ylim = plt.ylim()
+        trace1 = go.Scatter(
+            y = self.y_test_predictions,
+            x = np.arange(len(self.y_test)),
+            mode='lines',
+            name='Predicted Y',
+            line=dict(
+                color='rgb(110, 50, 140)',
+                dash='dot'
+            )
+        )
 
-        # Line of best fit
-        plt.plot(np.array(xlim), p[1] + p[0] * np.array(xlim), label=f'Line of Best Fit, R² = {r2:.2f}')
+        layout = go.Layout(
+            title=f'{model_name} Predictions vs Actual Y Test Values',
+            xaxis=dict(title='Index'),
+            yaxis=dict(title='Normalized Y Values')
+        )
 
-        # Title and labels
-        plt.title(f'{model_name} Regression')
-        plt.xlabel('Y Test')
-        plt.ylabel('Y Predictions')
+        figure = go.Figure(data=[trace0,trace1], layout=layout)
 
-        # Finished
-        plt.legend(fontsize=8)
-        plt.xlim(xlim)
-        plt.ylim(ylim)
-        plt.savefig(f'{model_name.lower()}plot.png')
-        plt.show()
+        if not os.path.exists("figures"):
+            os.mkdir("figures")
+
+        model_name = model_name.lower().replace(" ", "-")
+        figure.write_image(f'figures/{model_name}-fig.png')
 
 class LinearRegressionModel(RegressionModel):
     def __init__(self, x_train, y_train, x_test, y_test):
@@ -150,11 +158,7 @@ class LinearRegressionModel(RegressionModel):
 
     def evaluation(self):
         # Receive the performance results of the Linear Regression Model.
-        super().get_performance_results('Linear', self.y_test_predictions, self.r2)
-
-        # Display comparisons between the predicted y_test values and the actual y_test values.
-        super().make_comparisons(self.y_test_predictions)
-        super().make_accurate_comparisons(self.y_test_predictions)
+        super().get_performance_results('Linear Regression')
 
     def cross_validation(self):
         # Creating a KFold object with 5 splits.
@@ -172,7 +176,7 @@ class LinearRegressionModel(RegressionModel):
             scoring='r2', cv=folds, return_train_score=True)
 
         # Fit the model
-        linear_cv.fit(self.x_train, self.y_train)
+        linear_cv = linear_cv.fit(self.x_train, self.y_train)
 
         # Return the best Linear Regression Model.
         return linear_cv
@@ -187,18 +191,13 @@ class LassoRegressionModel(RegressionModel):
         
     def evaluation(self):
         # Receive the performance results of the Lasso Regression Model.
-        super().get_performance_results('Lasso', self.y_test_predictions, self.r2)
-
-        # Display comparisons between the predicted y_test values and the actual y_test values.
-        super().make_comparisons(self.y_test_predictions)
-        super().make_accurate_comparisons(self.y_test_predictions)
+        super().get_performance_results('Lasso Regression')
 
     def cross_validation(self):
         # Define the model.
         lasso_cv = LassoCV(cv=5, max_iter=10000, random_state=RegressionModel.seed)
-
         # Fit the model.
-        lasso_cv.fit(self.x_train, self.y_train)
+        lasso_cv = lasso_cv.fit(self.x_train, self.y_train)
 
         # Return the best Lasso Regresison Model.
         return lasso_cv
@@ -213,18 +212,71 @@ class ElasticRegressionModel(RegressionModel):
 
     def evaluation(self):
         # Receive the performance results of the Lasso Regression Model.
-        super().get_performance_results('Elastic', self.y_test_predictions, self.r2)
-
-        # Display comparisons between the predicted y_test values and the actual y_test values.
-        super().make_comparisons(self.y_test_predictions)
-        super().make_accurate_comparisons(self.y_test_predictions)
+        super().get_performance_results('Elastic Net Regression')
 
     def cross_validation(self):
         # Define model.
         elastic_cv = ElasticNetCV(cv=5, max_iter=10000, random_state=RegressionModel.seed)
-
         # Fit the model.
-        elastic_cv.fit(self.x_train, self.y_train)
+        elastic_cv = elastic_cv.fit(self.x_train, self.y_train)
 
         # Return the best Elastic Model.
         return elastic_cv
+
+class KNeighborsRegressorModel(RegressionModel):
+    def __init__(self, x_train, y_train, x_test, y_test):
+        super().__init__(x_train, y_train, x_test, y_test)
+        # Create the KNeighbors Regressor Model.
+        self.model = self.cross_validation()
+        # Set the variables declared in the parent class.
+        super().set_variables(self.model)
+
+    def evaluation(self):
+        # Receive the performance results of the KNeighbors Regressor Model.
+        super().get_performance_results('KNeighbors Regressor')
+
+    def cross_validation(self):
+        # Taking odd integers as K values so that
+        #  majority rule can be applied easily.
+        neighbors = np.arange(1, 27, 2)
+        scores = []
+
+        # Running for different K values to know 
+        # which yields the max accuracy.
+        for k in neighbors:
+            knn = KNeighborsRegressor(n_neighbors=k, weights='distance', p=1)
+            knn.fit(self.x_train, self.y_train)
+            score = cross_val_score(knn, self.x_train, self.y_train, cv=10)
+            scores.append(score.mean())
+
+        mse = [1-x for x in scores]
+
+        # Get the best value for K.
+        optimal_k = neighbors[mse.index(min(mse))]
+        
+        # Create the best model and fit the model.
+        best_model = KNeighborsRegressor(n_neighbors=optimal_k).fit(self.x_train, self.y_train)
+        return best_model
+
+class RidgeModel(RegressionModel):
+    def __init__(self, x_train, y_train, x_test, y_test):
+        super().__init__(x_train, y_train, x_test, y_test)
+        # Create the Ridge Regression Model.
+        self.model = self.cross_validation()
+        # Set the variables declared in the parent class.
+        super().set_variables(self.model)
+
+    def evaluation(self):
+        # Receive the performance results of the Ridge Regression Model.
+        super().get_performance_results('Ridge Regression')
+
+    def cross_validation(self):
+        # List of alphas to check: 100 values from 0 to 5.
+        ridge_alphas = np.logspace(0, 5, 100)
+
+        # Initiate the cross validation over alphas.
+        ridge_cv = RidgeCV(alphas=ridge_alphas, scoring='r2')
+
+        # Fit the model with the best alpha.
+        ridge_cv = ridge_cv.fit(self.x_train, self.y_train)
+        return ridge_cv

@@ -64,9 +64,6 @@ class Preprocessing():
         correlation = self.df.corr(method='pearson')
         relevant_cols = correlation.nlargest(10, 'y').index
 
-        # Receive a list of the top two correlated values.
-        #top_corr_vals = relevant_cols[:2]
-
         # Order the features in accordance with the head order in the df.
         relevant_copy = []
 

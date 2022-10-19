@@ -12,7 +12,7 @@ class Preprocessing():
         fig = plt.figure()
         ax = fig.add_subplot(111)
     
-        #Changing the outlier markers
+        # Changing the outlier markers
         circle = dict(markerfacecolor='slateblue', marker='o')
     
         ax.grid(None)
@@ -34,7 +34,8 @@ class Preprocessing():
 
         plt.savefig(f'../figures/features/{attribute}-fig.png', dpi=300, bbox_inches='tight')
 
-    def visualize_data(self):
+    # Create a method that visualizes data.
+    def visualize(self):
         for col in self.df.columns:
             self.boxplot(col)
 
@@ -47,7 +48,7 @@ class Preprocessing():
         # Finding the 3rd quartile
         q3 = np.quantile(data, 0.75)
  
-        # Finding the iqr region
+        # Finding the Interquartile Range region
         iqr = q3-q1
  
         # Finding upper and lower whiskers
@@ -66,14 +67,15 @@ class Preprocessing():
         return outliers
 
     def replace_outliers(self):
+        # Detect the outliers of each column/feature.
         for col in self.df.columns:
             if col == 'y':
                 pass
             else:
                 outliers = self.detect_outlier(self.df[col])
                 median = self.df[col].quantile(0.50)
-                # print(f'The median of {col} is {median}\n')
-               
+
+                # Replace the outliers with the median of the respective feature.
                 for outlier in outliers:
                     # Replace the all outliers with the variable (col) median
                     self.df[col] = np.where(self.df[col] == outlier, median, self.df[col])

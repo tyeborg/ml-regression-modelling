@@ -1,9 +1,17 @@
+# Import the appropriate libraries.
 import os
 import random
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from text_format import TextFormat
+from abc import ABCMeta, abstractmethod
+from sklearn.feature_selection import RFE
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.model_selection import KFold, cross_val_score, GridSearchCV
+from sklearn.linear_model import LinearRegression, Lasso, LassoCV, ElasticNet, ElasticNetCV, Ridge, RidgeCV
 
 # pip install tabulate
 from tabulate import tabulate
@@ -13,14 +21,6 @@ import plotly.graph_objs as go
 from chart_studio import plotly as py
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 init_notebook_mode(connected=True)
-
-from text_format import TextFormat
-from abc import ABCMeta, abstractmethod
-from sklearn.feature_selection import RFE
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.model_selection import KFold, cross_val_score, GridSearchCV
-from sklearn.linear_model import LinearRegression, Lasso, LassoCV, ElasticNet, ElasticNetCV, Ridge, RidgeCV
 
 class RegressionModel():
     # Initialize a class variable for the random state hyper parameter.
@@ -37,6 +37,9 @@ class RegressionModel():
         self.y_test_predictions = None
         self.y_train_predictions = None
         self.r2 = None
+        self.mse = None
+        self.mae = None
+        self.rmse = None
         self.test_error = None
         self.train_error = None
 
@@ -56,8 +59,11 @@ class RegressionModel():
         self.y_test_predictions = self.model.predict(self.x_test)
         self.y_train_predictions = self.model.predict(self.x_train)
 
-        # Receive the r2 score of the model.
+        # Receive the r2 score, and MAE of the model.
         self.r2 = r2_score(self.y_test, self.y_test_predictions)
+        self.mse = mean_squared_error(self.y_test, self.y_test_predictions)
+        self.rmse = np.sqrt(self.mse)
+        self.mae = np.mean(np.abs(self.y_test - self.y_test_predictions))
 
         # Calculate the model percentage error.
         self.test_error = self.get_error_percentage(self.y_test, self.y_test_predictions)
@@ -66,7 +72,6 @@ class RegressionModel():
     def flatten_vector(self, data):
         # Ensure the data is of numpy array type.
         data = np.array(data)
-
         # Flatten the vector
         data = data.flatten()
         
@@ -77,8 +82,9 @@ class RegressionModel():
         
         # Display R2, MSE, and RMSE
         print(f'R² = {self.r2:.2f}')
-        print(f'MSE = {mean_squared_error(self.y_test, self.y_test_predictions)}')
-        print(f'RMSE = {np.sqrt(mean_squared_error(self.y_test, self.y_test_predictions))}')
+        print(f'MSE = {self.mse}')
+        print(f'RMSE = {self.rmse}')
+        print(f'MAE = {self.mae}')
 
         # Display comparisons!
         self.tabular_comparisons()
@@ -89,6 +95,7 @@ class RegressionModel():
         predictions = list(predictions)
         error = 0
 
+        # Determine the percentage error (predictions vs actual y test).
         for i in range(len(data)):
             error += (abs(predictions[i] - data[i]) / data[i])
 
@@ -168,7 +175,7 @@ class LinearRegressionModel(RegressionModel):
 
     def cross_validation(self):
         # Creating a KFold object with 5 splits.
-        folds = KFold(n_splits = 5, shuffle = True, random_state=RegressionModel.seed)
+        folds = KFold(n_splits = 50, shuffle = True, random_state=RegressionModel.seed)
 
         # Specify range of hyperparameters.
         hyper_params = [{'n_features_to_select': list(range(2, 40))}]
@@ -201,7 +208,7 @@ class LassoRegressionModel(RegressionModel):
 
     def cross_validation(self):
         # Define the model.
-        lasso_cv = LassoCV(cv=5, max_iter=10000, random_state=RegressionModel.seed)
+        lasso_cv = LassoCV(cv=50, max_iter=10000, random_state=RegressionModel.seed)
         # Fit the model.
         lasso_cv = lasso_cv.fit(self.x_train, self.y_train)
 
@@ -222,7 +229,7 @@ class ElasticRegressionModel(RegressionModel):
 
     def cross_validation(self):
         # Define model.
-        elastic_cv = ElasticNetCV(cv=5, max_iter=10000, random_state=RegressionModel.seed)
+        elastic_cv = ElasticNetCV(cv=50, max_iter=10000, random_state=RegressionModel.seed)
         # Fit the model.
         elastic_cv = elastic_cv.fit(self.x_train, self.y_train)
 
@@ -252,7 +259,7 @@ class KNeighborsRegressorModel(RegressionModel):
         for k in neighbors:
             knn = KNeighborsRegressor(n_neighbors=k, weights='distance', p=1)
             knn.fit(self.x_train, self.y_train)
-            score = cross_val_score(knn, self.x_train, self.y_train, cv=10)
+            score = cross_val_score(knn, self.x_train, self.y_train, cv=50)
             scores.append(score.mean())
 
         mse = [1-x for x in scores]

@@ -6,18 +6,17 @@ import pandas as pd
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-
-# Import classes.
-from preprocessing import Preprocessing
-from text_format import TextFormat
-from model import LinearRegressionModel, LassoRegressionModel, ElasticRegressionModel, KNeighborsRegressorModel, RidgeModel
-
 import matplotlib.pyplot as plt
 from sklearn.model_selection import cross_val_score, cross_val_predict
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.feature_selection import VarianceThreshold
 from tabulate import tabulate
+
+# Import classes.
+from preprocessing import Preprocessing
+from text_format import TextFormat
+from model import LinearRegressionModel, LassoRegressionModel, ElasticRegressionModel, KNeighborsRegressorModel, RidgeModel
 
 def display_corr(df):
     # Plot a "pretty" version of the correlation matrix 
@@ -49,7 +48,6 @@ def display_corr(df):
         os.mkdir("../figures/results")
 
     plt.savefig("../figures/results/heatmap.png", dpi=300, bbox_inches='tight')
-    #plt.show()
 
 def compare_model_errors(linear, lasso, elastic, knn, ridge):
     train_error = [linear.train_error, lasso.train_error, elastic.train_error, knn.train_error, ridge.train_error]
@@ -69,9 +67,28 @@ def compare_model_errors(linear, lasso, elastic, knn, ridge):
     if not os.path.exists("../figures/results"):
         os.mkdir("../figures/results")
 
-    df.plot(kind='bar')
+    # Generate a bar plot visualizing values defined above.
+    n_groups = len(models)
+
+    fig, ax = plt.subplots()
+    index = np.arange(n_groups)
+    bar_width = 0.4
+
+    # Designing the bars.
+    train = plt.bar(index - bar_width/2, train_error, bar_width, color = '#2c7fb8', label = 'Train % Error')
+    test = plt.bar(index + bar_width/2, test_error,  bar_width, color = '#7fcdbb', label = 'Test % Error')
+
+    # Adding x tick locations
+    plt.xticks(index + 0, models)
+
+    # Adding title and labels.
+    plt.xlabel('Models')
+    plt.ylabel('Percentage Error')
+    plt.title('Percentage Errors of Training & Testing Data')
+    plt.legend()
+    plt.tight_layout()
+
     plt.savefig("../figures/results/comparisonplot.png", dpi=300, bbox_inches='tight')
-    plt.show()
 
 def receive_best_model(linear, lasso, elastic, knn, ridge):
     # Declare a dictionary with all the test error percentage from models.
@@ -82,6 +99,7 @@ def receive_best_model(linear, lasso, elastic, knn, ridge):
     # Sort the dictionary items.
     error_list = sorted(error_dict.items())
 
+    # Print the best model to worst model.
     for i in range(len(error_list)):
         if error_list[i] == error_list[-1]:
             print(error_list[i][1])
@@ -96,7 +114,8 @@ def main():
     
     # Preprocess the data within the DataFrame.
     data = Preprocessing(df)
-    data.visualize_data()
+    # Visualize the data.
+    data.visualize()
     print(f'\n{TextFormat.CYAN}{TextFormat.BOLD}Data Preparation:{TextFormat.END}')
     data.clean()
 
@@ -146,15 +165,14 @@ def main():
     ridge = RidgeModel(x_train, y_train, x_test, y_test)
     ridge.evaluation()
 
+    # Display the results.
     print("\n")
     compare_model_errors(linear, lasso, elastic, knn, ridge)
-
-    print("\n")
     result = receive_best_model(linear, lasso, elastic, knn, ridge)
     print(f'{TextFormat.BOLD}The {result} Regression Model is the most optimal.{TextFormat.END}')
 
 if __name__ == '__main__':
-    #try:
-    main()
-    #except Exception:
-        #print("\nSomething went wrong...")
+    try:
+        main()
+    except Exception:
+        print("\nSomething went wrong...")

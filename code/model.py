@@ -143,12 +143,16 @@ class RegressionModel():
         # Create the figure.
         figure = go.Figure(data=[trace0,trace1], layout=layout)
 
+        # Create figures folder if it does not already exist.
         if not os.path.exists("../figures"):
             os.mkdir("../figures")
+        
+        if not os.path.exists("../figures/models"):
+            os.mkdir("../figures/models")
 
         # Change the casing and spacing of the model name as an appropriate file name.
         model_name = model_name.lower().replace(" ", "-")
-        figure.write_image(f'../figures/{model_name}-fig.png')
+        figure.write_image(f'../figures/models/{model_name}-fig.png')
 
 class LinearRegressionModel(RegressionModel):
     def __init__(self, x_train, y_train, x_test, y_test):

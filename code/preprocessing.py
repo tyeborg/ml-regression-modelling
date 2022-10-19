@@ -1,11 +1,42 @@
+import os
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
 
 class Preprocessing():
     def __init__(self, df):
         self.df = df
+
+    # Create a function to display a boxplot of a feature
+    def boxplot(self, attribute):
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+    
+        #Changing the outlier markers
+        circle = dict(markerfacecolor='slateblue', marker='o')
+    
+        ax.grid(None)
+        ax.boxplot(x=self.df[attribute], 
+                vert=False, 
+                flierprops=circle, 
+                patch_artist=True, 
+                boxprops=dict(facecolor='lavender'), 
+                medianprops = dict(color="purple",linewidth=2.5))
+    
+        ax.set_xlabel(attribute)
+
+        # Create figures folder if it does not already exist.
+        if not os.path.exists("../figures"):
+            os.mkdir("../figures")
+
+        if not os.path.exists("../figures/features"):
+            os.mkdir("../figures/features")
+
+        plt.savefig(f'../figures/features/{attribute}-fig.png', dpi=300, bbox_inches='tight')
+
+    def visualize_data(self):
+        for col in self.df.columns:
+            self.boxplot(col)
 
     # Create a function that returns a list of outliers
     def detect_outlier(self, data):
@@ -114,4 +145,4 @@ class Preprocessing():
         # Replace all outliers with the median of their respective column.
         self.replace_outliers()
         # Drop all the columns in that possess an extremely high correlation.
-        #self.drop_high_corr_feats()
+        self.drop_high_corr_feats()

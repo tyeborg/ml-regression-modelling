@@ -1,4 +1,5 @@
 # Import appropriate libraries.
+import os
 import random
 import numpy as np
 import pandas as pd
@@ -17,7 +18,6 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.feature_selection import VarianceThreshold
 from tabulate import tabulate
-
 
 def display_corr(df):
     # Plot a "pretty" version of the correlation matrix 
@@ -41,8 +41,15 @@ def display_corr(df):
     sns.heatmap(corr_matrix, mask=mask, cmap=cmap, vmax=1, center=0, 
         square=True, linewidths=.5, cbar_kws={"shrink": .5}, annot=True)
 
-    plt.savefig("heatmap.png", dpi=300, bbox_inches='tight')
-    plt.show()
+    # Create figures folder if it does not already exist.
+    if not os.path.exists("../figures"):
+        os.mkdir("../figures")
+
+    if not os.path.exists("../figures/results"):
+        os.mkdir("../figures/results")
+
+    plt.savefig("../figures/results/heatmap.png", dpi=300, bbox_inches='tight')
+    #plt.show()
 
 def compare_model_errors(linear, lasso, elastic, knn, ridge):
     train_error = [linear.train_error, lasso.train_error, elastic.train_error, knn.train_error, ridge.train_error]
@@ -52,10 +59,18 @@ def compare_model_errors(linear, lasso, elastic, knn, ridge):
     models = ['Linear', 'Lasso', 'Elastic', 'KNN', 'Ridge']
 
     df = pd.DataFrame(data=col, index=models)
+    print("Train Error Percentage vs Test Error Percentage")
     print(tabulate(df, headers="keys", showindex=True, tablefmt="psql"))
+    
+    # Create figures folder if it does not already exist.
+    if not os.path.exists("../figures"):
+        os.mkdir("../figures")
+
+    if not os.path.exists("../figures/results"):
+        os.mkdir("../figures/results")
 
     df.plot(kind='bar')
-    plt.savefig("comparisonplot.png", dpi=300, bbox_inches='tight')
+    plt.savefig("../figures/results/comparisonplot.png", dpi=300, bbox_inches='tight')
     plt.show()
 
 def receive_best_model(linear, lasso, elastic, knn, ridge):
@@ -81,11 +96,12 @@ def main():
     
     # Preprocess the data within the DataFrame.
     data = Preprocessing(df)
+    data.visualize_data()
     print(f'\n{TextFormat.CYAN}{TextFormat.BOLD}Data Preparation:{TextFormat.END}')
     data.clean()
 
     # Display the all correlations between features.
-    #display_corr(data.df)
+    display_corr(data.df)
 
     # Identify the most relevant features towards y.
     relevant_feats = data.identify_relevant_feats()
@@ -97,7 +113,6 @@ def main():
         df[col] = np.log(df[col])
 
     # Declare the label and attributes in separate variables.
-    #x = df.loc[:, df.columns != 'y']
     x = df[[col for col in relevant_feats if col != 'y']]
     y = df.loc[:, df.columns == 'y']
 
@@ -123,9 +138,11 @@ def main():
     elastic = ElasticRegressionModel(x_train, y_train, x_test, y_test)
     elastic.evaluation()
 
+    # Apply and visualize KNeighbors Regressor Performance.
     knn = KNeighborsRegressorModel(x_train, y_train, x_test, y_test)
     knn.evaluation()
 
+    # Apply and visualize Ridge Regression Performance.
     ridge = RidgeModel(x_train, y_train, x_test, y_test)
     ridge.evaluation()
 
@@ -134,7 +151,7 @@ def main():
 
     print("\n")
     result = receive_best_model(linear, lasso, elastic, knn, ridge)
-    print(f'\nThe {result} Regression Model is the most optimal.')
+    print(f'{TextFormat.BOLD}The {result} Regression Model is the most optimal.{TextFormat.END}')
 
 if __name__ == '__main__':
     #try:

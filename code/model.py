@@ -1,19 +1,19 @@
+import os
 import random
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from scipy import stats
-from tabulate import tabulate
 import matplotlib.pyplot as plt
 
-# PIP install plotly
+# pip install tabulate
+from tabulate import tabulate
+
+# pip install chart-studio (for plotly)
 import plotly.graph_objs as go
-#pip install chart-studio
 from chart_studio import plotly as py
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 init_notebook_mode(connected=True)
 
-import os
 from text_format import TextFormat
 from abc import ABCMeta, abstractmethod
 from sklearn.feature_selection import RFE
@@ -80,6 +80,8 @@ class RegressionModel():
         print(f'MSE = {mean_squared_error(self.y_test, self.y_test_predictions)}')
         print(f'RMSE = {np.sqrt(mean_squared_error(self.y_test, self.y_test_predictions))}')
 
+        # Display comparisons!
+        self.tabular_comparisons()
         self.display(model_name)
         
     def get_error_percentage(self, data, predictions):
@@ -90,15 +92,10 @@ class RegressionModel():
         for i in range(len(data)):
             error += (abs(predictions[i] - data[i]) / data[i])
 
-        error_percentage = (error / len(data) * 100).round(2) 
+        error_percentage = (error / len(data) * 100)
         return error_percentage
-        
-    def make_comparisons(self):
-        compare = pd.DataFrame({'Test Data': self.y_test, 'Prediction': self.y_test_predictions})
-        print("\nTest Data vs Predicted Values:")
-        print(tabulate(compare.head(5), headers="keys", showindex=False, tablefmt="psql"))
-
-    def make_accurate_comparisons(self):
+    
+    def tabular_comparisons(self):
         # Transform the data back to its original state.
         actual_y_test = np.exp(self.y_test)
         actual_predictions = np.exp(self.y_test_predictions)
@@ -109,13 +106,14 @@ class RegressionModel():
         # Display the results in table form.
         actual_compare = pd.DataFrame({'Test Data': actual_y_test, 'Prediction': actual_predictions, 'Difference': diff})
         actual_compare = actual_compare.astype(float).round(2)
-        print("\nTest Data vs Predicted Values (reverted):")
+        print("\nTest Data vs Predicted Values:")
         print(tabulate(actual_compare.head(5), headers="keys", showindex=False, tablefmt="psql"))
 
     def display(self, model_name):
+        # Create the trace for Actual Y Test values.
         trace0 = go.Scatter(
             y=self.y_test, 
-            x=np.arange(len(self.y_test_predictions)), 
+            x=np.arange(len(self.y_test)), 
             mode='lines', 
             name='Y Test', 
             marker=dict(
@@ -123,9 +121,10 @@ class RegressionModel():
             )
         )
 
+        # Create the trace for the Y Test Predictions.
         trace1 = go.Scatter(
             y = self.y_test_predictions,
-            x = np.arange(len(self.y_test)),
+            x = np.arange(len(self.y_test_predictions)),
             mode='lines',
             name='Predicted Y',
             line=dict(
@@ -134,19 +133,22 @@ class RegressionModel():
             )
         )
 
+        # Add labels and titles.
         layout = go.Layout(
             title=f'{model_name} Predictions vs Actual Y Test Values',
             xaxis=dict(title='Index'),
             yaxis=dict(title='Normalized Y Values')
         )
 
+        # Create the figure.
         figure = go.Figure(data=[trace0,trace1], layout=layout)
 
-        if not os.path.exists("figures"):
-            os.mkdir("figures")
+        if not os.path.exists("../figures"):
+            os.mkdir("../figures")
 
+        # Change the casing and spacing of the model name as an appropriate file name.
         model_name = model_name.lower().replace(" ", "-")
-        figure.write_image(f'figures/{model_name}-fig.png')
+        figure.write_image(f'../figures/{model_name}-fig.png')
 
 class LinearRegressionModel(RegressionModel):
     def __init__(self, x_train, y_train, x_test, y_test):

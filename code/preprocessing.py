@@ -114,4 +114,4 @@ class Preprocessing():
         # Replace all outliers with the median of their respective column.
         self.replace_outliers()
         # Drop all the columns in that possess an extremely high correlation.
-        self.drop_high_corr_feats()
+        #self.drop_high_corr_feats()

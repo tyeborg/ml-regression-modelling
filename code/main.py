@@ -1,19 +1,23 @@
-# Import appropriate libraries
-import pandas as pd
+# Import appropriate libraries.
+import random
 import numpy as np
+import pandas as pd
+import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+
+# Import classes.
 from preprocessing import Preprocessing
 from text_format import TextFormat
-import seaborn as sns
+from model import LinearRegressionModel, LassoRegressionModel, ElasticRegressionModel, KNeighborsRegressorModel, RidgeModel
+
 import matplotlib.pyplot as plt
 from sklearn.model_selection import cross_val_score, cross_val_predict
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.feature_selection import VarianceThreshold
-import random
 from tabulate import tabulate
-from model import LinearRegressionModel, LassoRegressionModel, ElasticRegressionModel, KNeighborsRegressorModel, RidgeModel
+
 
 def display_corr(df):
     # Plot a "pretty" version of the correlation matrix 
@@ -54,6 +58,23 @@ def compare_model_errors(linear, lasso, elastic, knn, ridge):
     plt.savefig("comparisonplot.png", dpi=300, bbox_inches='tight')
     plt.show()
 
+def receive_best_model(linear, lasso, elastic, knn, ridge):
+    # Declare a dictionary with all the test error percentage from models.
+    error_dict = {linear.test_error: 'Linear', lasso.test_error: 'Lasso', 
+        elastic.test_error: 'Elastic', knn.test_error: 'KNN', 
+        ridge.test_error: 'Ridge'}
+
+    # Sort the dictionary items.
+    error_list = sorted(error_dict.items())
+
+    for i in range(len(error_list)):
+        if error_list[i] == error_list[-1]:
+            print(error_list[i][1])
+        else:
+            print("{0} > ".format(error_list[i][1]), end = '')
+
+    return error_list[0][1]
+    
 def main():
     # Import the data and set in variable.
     df = pd.read_csv('cw1data.csv')
@@ -76,6 +97,7 @@ def main():
         df[col] = np.log(df[col])
 
     # Declare the label and attributes in separate variables.
+    #x = df.loc[:, df.columns != 'y']
     x = df[[col for col in relevant_feats if col != 'y']]
     y = df.loc[:, df.columns == 'y']
 
@@ -107,8 +129,12 @@ def main():
     ridge = RidgeModel(x_train, y_train, x_test, y_test)
     ridge.evaluation()
 
-    #print("\n")
-    #compare_model_errors(linear, lasso, elastic, knn, ridge)
+    print("\n")
+    compare_model_errors(linear, lasso, elastic, knn, ridge)
+
+    print("\n")
+    result = receive_best_model(linear, lasso, elastic, knn, ridge)
+    print(f'\nThe {result} Regression Model is the most optimal.')
 
 if __name__ == '__main__':
     #try:

@@ -60,14 +60,14 @@ class RegressionModel():
         self.y_train_predictions = self.model.predict(self.x_train)
 
         # Receive the r2 score, and MAE of the model.
-        self.r2 = r2_score(self.y_test, self.y_test_predictions)
-        self.mse = mean_squared_error(self.y_test, self.y_test_predictions)
+        self.r2 = r2_score(np.exp(self.y_test), np.exp(self.y_test_predictions))
+        self.mse = mean_squared_error(np.exp(self.y_test), np.exp(self.y_test_predictions))
         self.rmse = np.sqrt(self.mse)
-        self.mae = np.mean(np.abs(self.y_test - self.y_test_predictions))
+        self.mae = np.mean(np.abs(np.exp(self.y_test) - np.exp(self.y_test_predictions)))
 
         # Calculate the model percentage error.
-        self.test_error = self.get_error_percentage(self.y_test, self.y_test_predictions)
-        self.train_error = self.get_error_percentage(self.y_train, self.y_train_predictions)
+        self.test_error = self.get_error_percentage(np.exp(self.y_test), np.exp(self.y_test_predictions))
+        self.train_error = self.get_error_percentage(np.exp(self.y_train), np.exp(self.y_train_predictions))
 
     def flatten_vector(self, data):
         # Ensure the data is of numpy array type.

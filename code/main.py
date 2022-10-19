@@ -50,8 +50,13 @@ def display_corr(df):
     plt.savefig("../figures/results/heatmap.png", dpi=300, bbox_inches='tight')
 
 def compare_model_errors(linear, lasso, elastic, knn, ridge):
+    # Store the train_error of each model into a list and round the results to the nearest hundreth.
     train_error = [linear.train_error, lasso.train_error, elastic.train_error, knn.train_error, ridge.train_error]
+    train_error = ['%.2f' % elem for elem in train_error]
+
+    # Store the test_error of each model into a list and round the results to the nearest hundreth.
     test_error = [linear.test_error, lasso.test_error, elastic.test_error, knn.test_error, ridge.test_error]
+    test_error = ['%.2f' % elem for elem in test_error]
 
     col = {'Train Error (%)': train_error, 'Test Error (%)': test_error}
     models = ['Linear', 'Lasso', 'Elastic', 'KNN', 'Ridge']

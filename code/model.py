@@ -119,7 +119,7 @@ class RegressionModel():
     def display(self, model_name):
         # Create the trace for Actual Y Test values.
         trace0 = go.Scatter(
-            y=self.y_test, 
+            y=np.exp(self.y_test), 
             x=np.arange(len(self.y_test)), 
             mode='lines', 
             name='Y Test', 
@@ -130,7 +130,7 @@ class RegressionModel():
 
         # Create the trace for the Y Test Predictions.
         trace1 = go.Scatter(
-            y = self.y_test_predictions,
+            y = np.exp(self.y_test_predictions),
             x = np.arange(len(self.y_test_predictions)),
             mode='lines',
             name='Predicted Y',
